@@ -157,6 +157,31 @@ def median_close_hours(
 
 
 @mcp.tool(annotations={"readOnlyHint": True})
+def longest_close_time(service: str | None = None) -> dict | None:
+    """Find the single request that took longest to close, with how long it took.
+
+    Returns the longest time from opened to closed, over closed requests only,
+    as `hours` (to one decimal) and `whole_hours` (rounded down), plus the
+    `request_id`, `service` and `neighborhood` of that request. Leave service
+    empty to search every service. Returns null if nothing has closed. Use this
+    for "what is the longest / slowest" questions. For typical speed use
+    median_close_hours; to read the request itself use get_request.
+    """
+    rows = [r for r in _matching(service) if r.hours_to_close is not None]
+    if not rows:
+        return None
+    slowest = max(rows, key=lambda r: r.hours_to_close)
+    return {
+        "hours": round(slowest.hours_to_close, 1),
+        "whole_hours": int(slowest.hours_to_close),
+        "request_id": slowest.request_id,
+        "service": slowest.service,
+        "neighborhood": slowest.neighborhood,
+        "closed_requests_considered": len(rows),
+    }
+
+
+@mcp.tool(annotations={"readOnlyHint": True})
 def get_request(request_id: str) -> dict:
     """Fetch one 311 request by its request_id, with all fields.
 
